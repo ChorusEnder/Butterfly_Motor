@@ -1,0 +1,23 @@
+{
+    "configurations": [
+        {
+            "name": "stm32",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "USE_HAL_DRIVER",
+                "STM32F103xB"   //更改为makefile文件中`c defines`部分对应的型号
+            ],
+            "cStandard": "c11",
+            "cppStandard": "gnu++14",
+            "intelliSenseMode": "gcc-arm",
+            "compilerPath": "D:/stm32/config/arm-gnu-toolchain-14.3/bin/arm-none-eabi-gcc.exe",//改为自己arm-toolchain工具链中gcc编译器的路径
+            "configurationProvider": "ms-vscode.cmake-tools"
+        }
+    ],
+    "version": 4
+}

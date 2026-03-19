@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"D:/YueLu/projects/F103/Butterfly_Motor/build/Debug/cmake_install.cmake",
+		"D:/YueLu/projects/F103/Butterfly_Motor/build/Debug/cmake/stm32cubemx/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

@@ -1,0 +1,66 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "DAPLink",
+            "type": "cortex-debug",
+            "request": "launch",
+            "servertype": "openocd",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/Debug/Butterfly_Mechanical.elf",//工程对应的.elf文件
+            "svdFile": "${workspaceFolder}/STM32F103.svd",//可选,添加.svd文件可查看寄存器
+            "configFiles": [
+                "interface/cmsis-dap.cfg",
+                "target/stm32f1x.cfg"
+            ],
+
+            "searchDir": [
+                "D:/msys64/ucrt64/share/openocd/scripts"//更换为openopcd文件夹下的`scripts`路径
+            ],
+            "interface": "swd",
+            "device": "STM32F103C8",//更改为实际芯片型号
+            "runToEntryPoint": "main",
+        },
+        {
+            "name": "ST-Link",
+            "type": "cortex-debug",
+            "request": "launch",
+            "servertype": "openocd",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/Debug/Butterfly_Mechanical.elf",
+            "device": "STM32F103C8", // 根据实际芯片型号填写
+            "runToEntryPoint": "main",
+            "preLaunchTask": "cleanRebuild",//可选,在调试前执行一次build任务
+            "configFiles": [
+                "interface/stlink-v2.cfg",
+                "target/stm32f1x.cfg"
+            ],
+            "searchDir": [
+                "D:/msys64/ucrt64/share/openocd/scripts"
+            ],
+            "showDevDebugOutput": "none",
+            "svdPath": "STM32F103.svd"
+        },
+
+        {
+            "name": "Jlink",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/Debug/Butterfly_Mechanical.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "jlink",
+            "device": "STM32F103C8",
+            "interface": "swd",
+            "svdPath": "STM32F103.svd",
+            "rtos": "FreeRTOS",
+            "liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 4
+            }
+        }
+    ]
+}
