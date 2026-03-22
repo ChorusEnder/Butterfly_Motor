@@ -48,7 +48,7 @@
         {
             "name": "Jlink",
             "cwd": "${workspaceFolder}",
-            "executable": "${workspaceFolder}/build/Debug/Butterfly_Mechanical.elf",
+            "executable": "${workspaceFolder}/build/Debug/Butterfly_Motor.elf",
             "request": "launch",
             "type": "cortex-debug",
             "runToEntryPoint": "main",
