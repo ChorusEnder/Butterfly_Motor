@@ -6,6 +6,9 @@
 
 #define ADC_CH_CNT 4
 
+#define ADC_VREFINT_TYPE 1.20f//电压参考源
+#define ADC_BANDWIDTH 4095.0f
+
 typedef enum {
     RANK1 = 0,
     RANK2,

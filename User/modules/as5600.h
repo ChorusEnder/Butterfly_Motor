@@ -12,8 +12,8 @@
 extern I2C_HandleTypeDef hi2c1;
 
 float AS5600_GetAngle(I2C_HandleTypeDef *hi2c);
-float TMAG5273_GetAngle(I2C_HandleTypeDef *hi2c);
 
+float TMAG5273_GetAngle(I2C_HandleTypeDef *hi2c);
 void TMAG5273_ReadReg(I2C_HandleTypeDef *hi2c,uint16_t *reg_add, uint8_t *data);
 void TMAG5273_WriteReg(I2C_HandleTypeDef *hi2c, uint16_t *reg_add, uint8_t *data);
 void TMAG5273_Init(I2C_HandleTypeDef *hi2c);

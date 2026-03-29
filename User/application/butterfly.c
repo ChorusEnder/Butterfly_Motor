@@ -9,24 +9,38 @@
 #include "daemon.h"
 #include "bsp_timer.h"
 #include "dwt.h"
+#include "math.h"
+
+#define ADC_BANDWIDTH_1 4095.0f//电机左边带宽,单位:度
+#define ADC_BANDWIDTH_2 4095.0f//电机右边带宽,单位:
+#define ADC_OFFSET_1 1700.0f
+#define ADC_OFFSET_2 2200.0f
+#define ADC_MIN_1 765
+#define ADC_MAX_1 3200
+#define ADC_MIN_2 1210
+#define ADC_MAX_2 3130
+
+
+static float vrefint;
+static float temperature;
 
 static butterfly_mode_e butterfly_mode;
 static Motor_Instance_s* motor_l;
 static Motor_Instance_s* motor_r;
 static ELRS_Data *rc_elrs;
 static uint16_t *ptr_adc;
-static float angle_feedforward_l;
-static float angle_feedforward_r;
+static float angle_feedforward_1;
+static float angle_feedforward_2;
 
 /*-------------------以下是Asin(wt)+B有关的参数---------*/
 static float angle_l;
 static float angle_r;
-static float time;
-static float w = 8;//角速度,单位:rad/s
-static float Al = 100;
-static float bl = 20;
-static float Ar = 100;
-static float br = 20;
+// static float time;
+// static float w = 8;//角速度,单位:rad/s
+// static float Al = 100;
+// static float bl = 20;
+// static float Ar = 100;
+// static float br = 20;
 /*----------------------------------------------------*/
 
 void Butterfly_Init()
@@ -80,21 +94,21 @@ void Butterfly_Init()
             .motor_state = MOTOR_ENABLE,
             .motor_offset = 28.0f,
 
-            .ptr_angle = &angle_feedforward_l,
+            .ptr_angle = &angle_feedforward_1,
             .ptr_speed = NULL,
         }
     };
-    motor_l = Motor_Init(&motorConfig);
+    motor_r = Motor_Init(&motorConfig);
 
     motorConfig.setting.pwm_config.htim = &htim3;
     motorConfig.setting.pwm_config.channel1 = TIM_CHANNEL_3;
     motorConfig.setting.pwm_config.channel2 = TIM_CHANNEL_4;
-    motorConfig.setting.flag_motor_reverse = MOTOR_DIR_REVERSE;
-    motorConfig.setting.flag_feedback_reverse = FEEDBACK_DIR_REVERSE;
+    motorConfig.setting.flag_motor_reverse = MOTOR_DIR_NORMAL;
+    motorConfig.setting.flag_feedback_reverse = FEEDBACK_DIR_NORMAL;
     motorConfig.setting.motor_offset = 216.0f;
-    motorConfig.setting.ptr_angle = &angle_feedforward_r;
+    motorConfig.setting.ptr_angle = &angle_feedforward_2;
     motorConfig.setting.ptr_speed = NULL;
-    motor_r = Motor_Init(&motorConfig);//正面
+    motor_l = Motor_Init(&motorConfig);//正面
 
     
 }
@@ -102,20 +116,38 @@ void Butterfly_Init()
 
 static void RemoteControl()
 {
+    butterfly_mode = BUTTERFLY_MODE_POSITION;
+
     if (sw_is_down(rc_elrs->D)){
         butterfly_mode = BUTTERFLY_MODE_STOP;
         return;
     }
 
-    if (sw_is_up(rc_elrs->A)){
-        butterfly_mode = BUTTERFLY_MODE_POSITION;
-        angle_l = (rc_elrs->Left_Y - 50) * 180/50;
-        angle_r = (rc_elrs->Right_Y - 50) * 180/50;
-    }
-    else if (sw_is_down(rc_elrs->A)){
-        butterfly_mode = BUTTERFLY_MODE_FLY;
-        angle_l = Al * arm_cos_f32(w * time) + bl;
-        angle_r = Ar * arm_cos_f32(w * time) + br;
+    // if (sw_is_up(rc_elrs->A)){
+    //     butterfly_mode = BUTTERFLY_MODE_POSITION;
+    //     angle_l = (rc_elrs->Left_Y - 50) * 180/50;
+    //     angle_r = (rc_elrs->Right_Y - 50) * 180/50;
+    // }
+    // else if (sw_is_down(rc_elrs->A)){
+    //     butterfly_mode = BUTTERFLY_MODE_FLY;
+    //     angle_l = Al * arm_cos_f32(w * time) + bl;
+    //     angle_r = Ar * arm_cos_f32(w * time) + br;
+    // }
+
+    switch (rc_elrs->C)
+    {
+        case 0:
+            angle_l = 0;
+            angle_r = 0;
+            break;
+        case 1:
+            angle_l = -80;
+            angle_r = -80;
+            break;
+        case -1:
+            angle_l = 80;
+            angle_r = 80;
+            break;
     }
 }
 
@@ -127,8 +159,8 @@ static void MotorControl()
     MotorEnable(motor_r);
 
     //默认角度闭环控制
-    MotorChangeLoop(motor_l, ANGLE_LOOP);
-    MotorChangeLoop(motor_r, ANGLE_LOOP);
+    // MotorChangeLoop(motor_l, ANGLE_LOOP);
+    // MotorChangeLoop(motor_r, ANGLE_LOOP);
     
     switch (butterfly_mode)
     {
@@ -149,13 +181,30 @@ static void MotorControl()
 
 void Adc_Cal()
 {
-    static float voltage;
-    static float temperature;
-    voltage = ptr_adc[RANK4] * 3.3f / 4096.0f;
-    temperature = ptr_adc[RANK3] * 3.3f / 4096.0f;
+    uint16_t temperature_value;
+    float resistance;
+    
+    //电压参考源
+    vrefint = ADC_BANDWIDTH / ptr_adc[RANK4] * ADC_VREFINT_TYPE;
 
-    angle_feedforward_l = ptr_adc[RANK1] * 360.0f / 4096.0f / 3.3f * voltage;
-    angle_feedforward_r = ptr_adc[RANK2] * 360.0f / 4096.0f / 3.3f * voltage;
+    //温度计算
+    temperature_value = ptr_adc[RANK3];
+    resistance = temperature_value / (ADC_BANDWIDTH - temperature_value) * 10000.0f;//10k分压电阻
+    static float B = 3950.0f;
+    static float R2 = 10000.0f;
+    static float T2 = 25.0f;
+    temperature =  (1.0 / ((1.0 / B) * log(resistance / R2) + (1.0 / (T2 + 273.15))) - 273.15);
+        
+    /*-------------------------------------反馈角度计算---------------------------*/
+
+    float adc_raw_1 = ptr_adc[RANK1];
+    float adc_raw_2 = ptr_adc[RANK2];
+    float adc_1 = adc_raw_1;
+    float adc_2 = adc_raw_2;
+
+
+    angle_feedforward_1 = (adc_1 - ADC_OFFSET_1) / ADC_BANDWIDTH_1 * 270.f;
+    angle_feedforward_2 = (adc_2 - ADC_OFFSET_2) / ADC_BANDWIDTH_2 * 270.f;
 }
 
 
@@ -163,5 +212,5 @@ void Butterfly_Task()
 {
     Adc_Cal();
     RemoteControl();
-    // MotorControl();
+    MotorControl();
 }

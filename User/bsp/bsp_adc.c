@@ -9,3 +9,8 @@ uint16_t *BSP_ADC_Init(ADC_HandleTypeDef *hadc)
     
     return adc_value;
 }
+
+void Adc_Task()
+{
+    
+}
