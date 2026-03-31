@@ -66,6 +66,11 @@ https://github.com/crsf-wg/crsf/wiki/Packet-Types CRSF协议定义
 #define CHANNELS_Frame_Length 0x18 // 通道帧长度
 #define LINK_Frame_Length 0x0C     // 连接帧长度
 
+typedef enum {
+    RC_OFFLINE = 0,
+    RC_ONLINE,
+} RC_State_e;
+
 typedef struct
 {
     // CRSF_FRAMETYPE_RC_CHANNELS_PACKED  遥控器通道打包帧类型
@@ -96,7 +101,9 @@ typedef struct
     int8_t downlink_SNR;           // 下行信噪比
 
     // CRSF_FRAMETYPE_HEARTBEAT 心跳
-    uint16_t heartbeat_counter; // 心跳计数器
+    uint16_t heartbeat_counter; // 心跳计数器.
+
+    RC_State_e rc_state; // 遥控器状态
 
 } ELRS_Data;
 

@@ -47,6 +47,9 @@ float float_Map_with_median(float input_value, float input_min, float input_max,
 
 static void ELRS_UARTE_RxCallback()
 {
+    elrs_data.rc_state = RC_ONLINE;
+    DaemonReload(rc_daemon_instance);
+
     memcpy(elrs_data_temp, rc_uart_instance->rx_buffer, ELRS_MAX_FRAME_SIZE);
 
     if (elrs_data_temp[0] == CRSF_ADDRESS_FLIGHT_CONTROLLER)
@@ -109,10 +112,7 @@ static void ELRS_UARTE_RxCallback()
 
 static void ELRS_LostCallback()
 {
-
-    // if (rc_uart_instance->huart->hdmarx->State == HAL_DMA_STATE_BUSY) {
-    //     HAL_DMA_Abort_IT(rc_uart_instance->huart->hdmarx);  // 中断方式 abort
-    // }
+    elrs_data.rc_state = RC_OFFLINE;
 
     HAL_UARTEx_ReceiveToIdle_DMA(rc_uart_instance->huart, rc_uart_instance->rx_buffer, rc_uart_instance->rx_buffer_size);
     __HAL_DMA_DISABLE_IT(rc_uart_instance->huart->hdmarx, DMA_IT_HT);
@@ -131,8 +131,8 @@ ELRS_Data *REMOTE_ELRS_Init(UART_HandleTypeDef *ptr_huart)
 
     // 进行守护进程的注册,用于定时检查遥控器是否正常工作
     Daemon_Init_Config_s daemon_conf = {
-        .reload_count = 100,
-        .init_count = 200,
+        .reload_count = 50,
+        .init_count = 100,
         .callback = ELRS_LostCallback,
         .owner_id = NULL, // 只有1个遥控器,不需要owner_id
     };
