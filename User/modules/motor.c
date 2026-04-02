@@ -1,6 +1,5 @@
 
 #include "motor.h"
-// #include "as5600.h"
 #include "dwt.h"
 
 static uint8_t idx = 0;
@@ -21,9 +20,6 @@ Motor_Instance_s* Motor_Init(Motor_Init_Config_s *config)
     instance->setting = config->setting;
     HAL_TIM_PWM_Start(instance->setting.pwm_config.htim, instance->setting.pwm_config.channel1);
     HAL_TIM_PWM_Start(instance->setting.pwm_config.htim, instance->setting.pwm_config.channel2);
-
-    instance->setting.ptr_angle = &instance->measures.angle;
-    instance->setting.ptr_speed = &instance->measures.speed;
 
     motor_instance[idx++] = instance;
     return instance;
@@ -88,16 +84,17 @@ void MotorTask()
         pid_ref = controller->pid_ref;
 
         //角度获取
-        float raw_angle = *motor->setting.ptr_angle;
+        motor->measures.angle = *motor->setting.ptr_angle;
         // float raw_speed = *motor->setting.ptr_speed;
-        if (motor->setting.motor_offset == 0.0f){
-            motor->measures.angle = raw_angle;
-        }
-        else{
-            motor->measures.angle = Deal_Angle(raw_angle, motor->setting.motor_offset);
-            if (motor->setting.flag_feedback_reverse == FEEDBACK_DIR_REVERSE) {
+        if (motor->setting.flag_feedback_reverse == FEEDBACK_DIR_REVERSE) {
                 motor->measures.angle *= -1;
             }
+            
+        if (motor->setting.motor_offset == 0.0f){
+            motor->measures.angle = motor->measures.angle;
+        }
+        else{
+            motor->measures.angle = Deal_Angle(motor->measures.angle, motor->setting.motor_offset);
         }
 
         //角度环计算
@@ -111,19 +108,27 @@ void MotorTask()
             pid_ref = PIDCalculate(&controller->speed_pid, pid_measure, pid_ref);
         }
 
+        //前馈,须在反转判断之前?
+        pid_ref += controller->feedforward;
+
+        //限幅
+        if (pid_ref > controller->angle_pid.maxout) {
+            pid_ref = controller->angle_pid.maxout;
+        }
+        else if (pid_ref < -controller->angle_pid.maxout) {
+            pid_ref = -controller->angle_pid.maxout;
+        }
+
         if (setting->flag_motor_reverse == MOTOR_DIR_REVERSE) {
             pid_ref *= -1;
         }
 
-        //前馈,须在反转判断之后
-        pid_ref += controller->feedforward;
-
-
         if (motor->setting.motor_state == MOTOR_STOP) {
-            pid_ref = 0; 
+            pid_ref = 0;
         }
 
         motor->controller.set = pid_ref;
+        
         MotorDrive((int16_t)motor->controller.set, &setting->pwm_config);
 
     }

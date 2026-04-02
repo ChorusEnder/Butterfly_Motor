@@ -64,7 +64,7 @@ typedef struct {
     Loop_Type_e loop_type;
     PID_Instance_s angle_pid;
     PID_Instance_s speed_pid;
-    float feedforward;
+    float feedforward;//前馈
 
 } Motor_Controller_s;
 
@@ -107,7 +107,7 @@ void MotorEnable(Motor_Instance_s *motor);
 //停止电机
 void MotorStop(Motor_Instance_s *motor);
 
-//设置电机反馈角度方向
+//设置电机前馈
 void MotorSetFeedforward(Motor_Instance_s *motor, float feedforward);
 
 //获取当前电机角度

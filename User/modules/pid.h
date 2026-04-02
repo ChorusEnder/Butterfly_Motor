@@ -17,6 +17,11 @@ typedef enum
     PID_ErrorHandle = 0b10000000,      // 1000 0000
 } PID_Improve_e;
 
+typedef struct {
+    
+
+}PID_Improve_t;
+
 typedef struct
 {
     /*--------------------配置部分-----------------]*/

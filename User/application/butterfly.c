@@ -13,12 +13,12 @@
 
 #define ADC_BANDWIDTH_1 4095.0f//电机左边带宽,单位:度
 #define ADC_BANDWIDTH_2 4095.0f//电机右边带宽,单位:
-#define ADC_OFFSET_1 1700.0f
-#define ADC_OFFSET_2 2200.0f
-#define ADC_MIN_1 765
-#define ADC_MAX_1 3200
-#define ADC_MIN_2 1210
-#define ADC_MAX_2 3130
+#define ADC_OFFSET_1 1736.0f
+#define ADC_OFFSET_2 2888.0f
+#define ADC_MIN_1 (ADC_OFFSET_1 - 1000.0f)
+#define ADC_MAX_1 (ADC_OFFSET_1 + 1000.0f)
+#define ADC_MIN_2 (ADC_OFFSET_2 - 1000.0f)
+#define ADC_MAX_2 (ADC_OFFSET_2 + 1000.0f)
 
 
 static float vrefint;
@@ -29,18 +29,21 @@ static Motor_Instance_s* motor_l;
 static Motor_Instance_s* motor_r;
 static ELRS_Data *rc_elrs;
 static uint16_t *ptr_adc;
+static float angle_feedback_1;
+static float angle_feedback_2;
+
 static float angle_feedforward_1;
 static float angle_feedforward_2;
 
 /*-------------------以下是Asin(wt)+B有关的参数---------*/
 static float angle_l;
 static float angle_r;
-// static float time;
-// static float w = 8;//角速度,单位:rad/s
-// static float Al = 100;
-// static float bl = 20;
-// static float Ar = 100;
-// static float br = 20;
+static float time;
+static float w = 16;//角速度,单位:rad/s
+static float Al = 50;
+static float bl = -10;
+static float Ar = 50;
+static float br = -10;
 /*----------------------------------------------------*/
 
 void Butterfly_Init()
@@ -53,15 +56,15 @@ void Butterfly_Init()
     Motor_Init_Config_s motorConfig = {
         .controller = {
             // .loop_type = ANGLE_LOOP | SPEED_LOOP,
-            .loop_type = OPEN_LOOP,
+            .loop_type = ANGLE_LOOP,
             .pid_ref = 0.0f,
             .angle_pid = {
-                .kp = 5.0f,
+                .kp = 10.0f,
                 .ki = 0.0f,
                 .kd = 0.0f,
                 .deadband = 1.0f,
-                .maxout = 700,
-                .Improve = PID_T_Intergral | PID_I_limit | PID_D_Filter | PID_OutputFilter | PID_Changing_I,
+                .maxout = 900,
+                .Improve = PID_T_Intergral | PID_I_limit | PID_OutputFilter | PID_Changing_I,
                 .core_a = 100,
                 .core_b = 50,
                 .derivative_LPF_RC = 0.01f,
@@ -86,29 +89,28 @@ void Butterfly_Init()
         .setting = {
             .pwm_config = {
                 .htim = &htim3,
-                .channel1 = TIM_CHANNEL_1,
-                .channel2 = TIM_CHANNEL_2,
+                .channel1 = TIM_CHANNEL_3,
+                .channel2 = TIM_CHANNEL_4,
             },
-            .flag_motor_reverse = MOTOR_DIR_NORMAL,
+            .flag_motor_reverse = MOTOR_DIR_REVERSE,
             .flag_feedback_reverse = FEEDBACK_DIR_NORMAL,
             .motor_state = MOTOR_ENABLE,
-            .motor_offset = 28.0f,
+            .motor_offset = 0.0f,
 
-            .ptr_angle = &angle_feedforward_1,
+            .ptr_angle = &angle_feedback_1,
             .ptr_speed = NULL,
         }
     };
     motor_r = Motor_Init(&motorConfig);
 
-    motorConfig.setting.pwm_config.htim = &htim3;
-    motorConfig.setting.pwm_config.channel1 = TIM_CHANNEL_3;
-    motorConfig.setting.pwm_config.channel2 = TIM_CHANNEL_4;
-    motorConfig.setting.flag_motor_reverse = MOTOR_DIR_NORMAL;
+    motorConfig.setting.pwm_config.channel1 = TIM_CHANNEL_1;
+    motorConfig.setting.pwm_config.channel2 = TIM_CHANNEL_2;
+    motorConfig.setting.flag_motor_reverse = MOTOR_DIR_REVERSE;
     motorConfig.setting.flag_feedback_reverse = FEEDBACK_DIR_NORMAL;
-    motorConfig.setting.motor_offset = 216.0f;
-    motorConfig.setting.ptr_angle = &angle_feedforward_2;
+    motorConfig.setting.motor_offset = 0.0f;
+    motorConfig.setting.ptr_angle = &angle_feedback_2;
     motorConfig.setting.ptr_speed = NULL;
-    motor_l = Motor_Init(&motorConfig);//正面
+    motor_l = Motor_Init(&motorConfig);
 
     
 }
@@ -117,37 +119,25 @@ void Butterfly_Init()
 static void RemoteControl()
 {
     butterfly_mode = BUTTERFLY_MODE_POSITION;
-
+    
+    if (rc_elrs->rc_state == RC_OFFLINE) {
+        butterfly_mode = BUTTERFLY_MODE_STOP;
+        return;
+    }
     if (sw_is_down(rc_elrs->D)){
         butterfly_mode = BUTTERFLY_MODE_STOP;
         return;
     }
 
-    // if (sw_is_up(rc_elrs->A)){
-    //     butterfly_mode = BUTTERFLY_MODE_POSITION;
-    //     angle_l = (rc_elrs->Left_Y - 50) * 180/50;
-    //     angle_r = (rc_elrs->Right_Y - 50) * 180/50;
-    // }
-    // else if (sw_is_down(rc_elrs->A)){
-    //     butterfly_mode = BUTTERFLY_MODE_FLY;
-    //     angle_l = Al * arm_cos_f32(w * time) + bl;
-    //     angle_r = Ar * arm_cos_f32(w * time) + br;
-    // }
-
-    switch (rc_elrs->C)
-    {
-        case 0:
-            angle_l = 0;
-            angle_r = 0;
-            break;
-        case 1:
-            angle_l = -80;
-            angle_r = -80;
-            break;
-        case -1:
-            angle_l = 80;
-            angle_r = 80;
-            break;
+    if (sw_is_up(rc_elrs->A)){
+        butterfly_mode = BUTTERFLY_MODE_POSITION;
+        angle_l = (rc_elrs->Left_Y - 50);
+        angle_r = (rc_elrs->Left_Y - 50);
+    }
+    else if (sw_is_down(rc_elrs->A)){
+        butterfly_mode = BUTTERFLY_MODE_FLY;
+        angle_l = cosf(time * w) * Al + bl;
+        angle_r = cosf(time * w) * Ar + br;
     }
 }
 
@@ -161,7 +151,19 @@ static void MotorControl()
     //默认角度闭环控制
     // MotorChangeLoop(motor_l, ANGLE_LOOP);
     // MotorChangeLoop(motor_r, ANGLE_LOOP);
-    
+
+    //前馈计算
+    angle_feedforward_1 = 100 *cosf(angle_feedback_1 * ANG_TO_RAD);
+    angle_feedforward_2 = 100 *cosf(angle_feedback_2 * ANG_TO_RAD);
+    MotorSetFeedforward(motor_l, angle_feedforward_1);
+    MotorSetFeedforward(motor_r, angle_feedforward_2);
+
+    //限幅
+    if (angle_l > 40.0f) angle_l = 40.0f;
+    if (angle_l < -80.0f) angle_l = -80.0f;
+    if (angle_r > 40.0f) angle_r = 40.0f;
+    if (angle_r < -80.0f) angle_r = -80.0f;
+
     switch (butterfly_mode)
     {
         case BUTTERFLY_MODE_STOP:
@@ -203,13 +205,14 @@ void Adc_Cal()
     float adc_2 = adc_raw_2;
 
 
-    angle_feedforward_1 = (adc_1 - ADC_OFFSET_1) / ADC_BANDWIDTH_1 * 270.f;
-    angle_feedforward_2 = (adc_2 - ADC_OFFSET_2) / ADC_BANDWIDTH_2 * 270.f;
+    angle_feedback_1 = (adc_1 - ADC_OFFSET_1) / ADC_BANDWIDTH_1 * 270.f;
+    angle_feedback_2 = (adc_2 - ADC_OFFSET_2) / ADC_BANDWIDTH_2 * 270.f;
 }
 
 
 void Butterfly_Task()
 {
+    time = DWT_GetTimeLine_s();
     Adc_Cal();
     RemoteControl();
     MotorControl();

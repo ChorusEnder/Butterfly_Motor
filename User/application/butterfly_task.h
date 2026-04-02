@@ -11,7 +11,7 @@
 osThreadId motorTaskHandle;
 const osThreadAttr_t motorTask_attributes = {
   .name = "motorTask",
-  .stack_size = 128 * 4,
+  .stack_size = 128 * 8,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
@@ -49,7 +49,7 @@ void motorTASK(void *argument)
     {
         //频率过快似乎会导致iic通信失败
         MotorTask();//任务运行时间约0.5ms
-        osDelay(5);
+        osDelay(2);
 
     }
 }
@@ -61,7 +61,7 @@ void butterflyTASK(void *argument)
     for(;;)
     {
         Butterfly_Task();
-        osDelay(10);
+        osDelay(5);
     }
 }
 

@@ -62,6 +62,12 @@ static void Pid_Output_Filter(PID_Instance_s *pid)
                   pid->output * pid->output_LPF_RC / (pid->output_LPF_RC + pid->dt);
 }
 
+//变速P,误差越大,P越大
+static void Pid_Change_P(PID_Instance_s *pid)
+{
+
+}
+
 //输出限幅
 static void OutputLimit(PID_Instance_s *pid)
 {
