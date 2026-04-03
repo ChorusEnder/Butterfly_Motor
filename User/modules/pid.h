@@ -10,7 +10,8 @@ typedef enum
     PID_I_limit = 0b00000001,          // 积分限幅
     PID_D_On_Measurement = 0b00000010, // 0000 0010  微分先行
     PID_T_Intergral = 0b00000100,      // 0000 0100  梯形积分
-    PID_P_On_Measurement = 0b00001000, // 0000 1000  比例先行
+    PID_P_On_Measurement = 0b00001000, // 0000 1000  比例先行(保留)
+    PID_Changing_P = PID_P_On_Measurement, // 变速P: 误差越大, Kp越大
     PID_OutputFilter = 0b00010000,     // 0001 0000  输出滤波
     PID_Changing_I = 0b00100000,  // 0010 0000  变速积分
     PID_D_Filter = 0b01000000,         // 0100 0000  微分滤波
@@ -27,6 +28,7 @@ typedef struct {
     float derivative_LPF_RC; // 微分滤波器系数 dt*50
 
     float p_max;
+    float p_min;
     float err_max;
     
 }PID_Improve_t;

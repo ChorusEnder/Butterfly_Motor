@@ -60,6 +60,7 @@ typedef struct {
 //电机控制器
 typedef struct {
     float pid_ref;
+    float pid_output; // PID输出, 不包含前馈
     float set;
     Loop_Type_e loop_type;
     PID_Instance_s angle_pid;
@@ -75,7 +76,6 @@ typedef struct {
     Motor_Reverse_Flag_e flag_motor_reverse; // 反转标志
     Motor_Feedback_Reverse_Flag_e flag_feedback_reverse; // 反馈反转标志
     Motor_State_e motor_state;
-    float motor_offset;
 
     float *ptr_angle;//指向反馈角度的指针
     float *ptr_speed;//指向反馈速度的指针

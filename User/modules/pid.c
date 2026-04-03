@@ -67,7 +67,23 @@ static void Pid_Output_Filter(PID_Instance_s *pid)
 //变速P,误差越大,P越大
 static void Pid_Change_P(PID_Instance_s *pid)
 {
+    float abs_err = fabsf(pid->err[0]);
+    float kp_dynamic = pid->kp;
 
+    // 参数非法时回退到固定kp
+    if ((pid->Improve_param.err_max > 0.0f) &&
+        (pid->Improve_param.p_max > pid->Improve_param.p_min)) {
+        float ratio = abs_err / pid->Improve_param.err_max;
+
+        if (ratio > 1.0f) {
+            ratio = 1.0f;
+        }
+
+        kp_dynamic = pid->Improve_param.p_min +
+                     (pid->Improve_param.p_max - pid->Improve_param.p_min) * ratio;
+    }
+
+    pid->pout = kp_dynamic * pid->err[0];
 
 }
 
@@ -91,9 +107,14 @@ float PIDCalculate(PID_Instance_s *pid, float measure, float target)
     pid->err[0] = target - measure;
     if (fabsf(pid->err[0]) > pid->deadband) {
         // 基本的pid计算,使用位置式-时间积分
+        
         pid->pout = pid->kp * pid->err[0];
         pid->iterm = pid->ki * pid->err[0] * pid->dt;
         pid->dout = pid->kd * (pid->err[0] - pid->err[1]) / pid->dt;
+
+        if (pid->Improve & PID_Changing_P) {
+            Pid_Change_P(pid);
+        }
 
         if (pid->Improve & PID_T_Intergral) {
             Pid_T_Intergral(pid);

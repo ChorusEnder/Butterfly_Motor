@@ -46,18 +46,14 @@ void MotorDrive(int16_t value, Motor_PWM_Config_s *pwm_config)
     }
 }
 
-//将角度映射到[-180,0,180]区间内
-float Deal_Angle(float raw_angle, float offset)
+void LimitValue(float *value, float max)
 {
-    float angle;
-    angle = raw_angle - offset;
-    if (angle > 180){
-        angle -= 360;
+    if (*value > max) {
+        *value = max;
     }
-    if (angle < -180){
-        angle += 360;
+    if (*value < -max) {
+        *value = -max;
     }
-    return angle;
 }
 
 
@@ -89,13 +85,6 @@ void MotorTask()
         if (motor->setting.flag_feedback_reverse == FEEDBACK_DIR_REVERSE) {
                 motor->measures.angle *= -1;
             }
-            
-        if (motor->setting.motor_offset == 0.0f){
-            motor->measures.angle = motor->measures.angle;
-        }
-        else{
-            motor->measures.angle = Deal_Angle(motor->measures.angle, motor->setting.motor_offset);
-        }
 
         //角度环计算
         if (controller->loop_type & ANGLE_LOOP) {
@@ -112,12 +101,7 @@ void MotorTask()
         pid_ref += controller->feedforward;
 
         //限幅
-        if (pid_ref > controller->angle_pid.maxout) {
-            pid_ref = controller->angle_pid.maxout;
-        }
-        else if (pid_ref < -controller->angle_pid.maxout) {
-            pid_ref = -controller->angle_pid.maxout;
-        }
+        LimitValue(&pid_ref, controller->angle_pid.maxout);
 
         if (setting->flag_motor_reverse == MOTOR_DIR_REVERSE) {
             pid_ref *= -1;

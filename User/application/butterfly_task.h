@@ -61,7 +61,7 @@ void butterflyTASK(void *argument)
     for(;;)
     {
         Butterfly_Task();
-        osDelay(5);
+        osDelay(2);
     }
 }
 
