@@ -12,6 +12,12 @@
 ```bash
 camke --preset Debug 
 ```
-之后即可利用`Crtl + Shift +B`一键编译
+之后即可`Crtl + Shift +B`一键编译
 
-在,vscode/c_cpp_properties.json中将编译器路径修改为你自己电脑上的编译器路径即可解决vscode IntelliSense高亮报错问题
+在.vscode/c_cpp_properties.json中将编译器路径修改为你自己电脑上的编译器路径即可解决vscode IntelliSense高亮报错问题
+
+
+## 硬件
+
+AS5600:==在设计的时候若采用ADC输出,则在设计的时候确保`PG0`引脚悬空或者接VCC!!!否则会导致OUT引脚锁定==(手册上的Application Information就是接地的,并且也没有直接说明!非常坑QWQ)
+

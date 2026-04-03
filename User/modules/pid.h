@@ -18,8 +18,17 @@ typedef enum
 } PID_Improve_e;
 
 typedef struct {
-    
+    float i_limit;     // 积分限幅
 
+    float core_a;   // 变速积分,较大误差
+    float core_b;   //变速积分,较小误差
+
+    float output_LPF_RC;     // 输出滤波器 RC = 1/omegac dt*10
+    float derivative_LPF_RC; // 微分滤波器系数 dt*50
+
+    float p_max;
+    float err_max;
+    
 }PID_Improve_t;
 
 typedef struct
@@ -30,14 +39,11 @@ typedef struct
     float kd;     // 微分系数
     float maxout; // 输出限幅
     float deadband;
+    float feedforword_k;     // 前馈参数
+
     // 用于改善pid计算
     PID_Improve_e Improve;
-    float i_limit;     // 积分限幅
-    float core_a;   // 变速积分,较大误差
-    float core_b;   //变速积分,较小误差
-    float output_LPF_RC;     // 输出滤波器 RC = 1/omegac dt*10
-    float derivative_LPF_RC; // 微分滤波器系数 dt*50
-    float feedforword_k;     // 前馈参数
+    PID_Improve_t Improve_param;
 
     /*--------------------计算变量-----------------*/
     // 用于计算的变量

@@ -46,7 +46,8 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     User/application/butterfly.c
     User/modules/daemon.c
-    User/modules/elrs.c
+    User/modules/remote/elrs.c
+    User/modules/sensor/as5600.c
     User/modules/motor.c
     User/modules/pid.c
     User/bsp/bsp_uart.c
@@ -60,6 +61,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     User/application
     User/bsp
     User/modules
+    User/modules/sensor
+    User/modules/remote
     # Add user defined include paths
 )
 

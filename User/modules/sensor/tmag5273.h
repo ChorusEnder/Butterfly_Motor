@@ -1,5 +1,5 @@
-#ifndef AS5600_H
-#define AS5600_H
+#ifndef TMAG5273_H
+#define TMAG5273_H
 
 #include "i2c.h"
 
@@ -10,12 +10,14 @@
 #define TMAG5273_RAW_ANGLE_REG   0x19          // RAW ANGLE 高字节寄存器
 
 extern I2C_HandleTypeDef hi2c1;
+extern I2C_HandleTypeDef hi2c2;
 
-float AS5600_GetAngle(I2C_HandleTypeDef *hi2c);
 
 float TMAG5273_GetAngle(I2C_HandleTypeDef *hi2c);
 void TMAG5273_ReadReg(I2C_HandleTypeDef *hi2c,uint16_t *reg_add, uint8_t *data);
 void TMAG5273_WriteReg(I2C_HandleTypeDef *hi2c, uint16_t *reg_add, uint8_t *data);
 void TMAG5273_Init(I2C_HandleTypeDef *hi2c);
+
+
 
 #endif

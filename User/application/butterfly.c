@@ -10,6 +10,7 @@
 #include "bsp_timer.h"
 #include "dwt.h"
 #include "math.h"
+#include "as5600.h"
 
 #define ADC_BANDWIDTH_1 4095.0f//电机左边带宽,单位:度
 #define ADC_BANDWIDTH_2 4095.0f//电机右边带宽,单位:
@@ -46,6 +47,10 @@ static float Ar = 50;
 static float br = -10;
 /*----------------------------------------------------*/
 
+// static uint8_t reg_raw[2];
+// static uint8_t reg_conf[2];
+// static float angle_as5600;
+
 void Butterfly_Init()
 {
     OSTask_Init();
@@ -56,7 +61,7 @@ void Butterfly_Init()
     Motor_Init_Config_s motorConfig = {
         .controller = {
             // .loop_type = ANGLE_LOOP | SPEED_LOOP,
-            .loop_type = ANGLE_LOOP,
+            .loop_type = OPEN_LOOP,
             .pid_ref = 0.0f,
             .angle_pid = {
                 .kp = 10.0f,
@@ -64,12 +69,14 @@ void Butterfly_Init()
                 .kd = 0.0f,
                 .deadband = 1.0f,
                 .maxout = 900,
-                .Improve = PID_T_Intergral | PID_I_limit | PID_OutputFilter | PID_Changing_I,
-                .core_a = 100,
-                .core_b = 50,
-                .derivative_LPF_RC = 0.01f,
-                .output_LPF_RC = 0.05f,
-                .i_limit = 20.0f,
+                .Improve = PID_T_Intergral | PID_I_limit | PID_Changing_I,
+                .Improve_param = {
+                    .core_a = 100,
+                    .core_b = 50,
+                    .derivative_LPF_RC = 0.01f,
+                    .output_LPF_RC = 0.05f,
+                    .i_limit = 20.0f,
+                },
             },
             .speed_pid = {
                 .kp = 0.0f,
@@ -79,11 +86,13 @@ void Butterfly_Init()
                 .maxout = VALUE_COMPARE,
                 // .Improve = PID_T_Intergral | PID_I_limit | PID_D_On_Measurement | PID_D_Filter | PID_OutputFilter,
                 .Improve = 0b00000000,
-                .core_a = 100,
-                .core_b = 50,
-                .derivative_LPF_RC = 0.01f,
-                .output_LPF_RC = 0.05f,
-                .i_limit = 500.0f,  
+                .Improve_param = {
+                    .core_a = 100,
+                    .core_b = 50,
+                    .derivative_LPF_RC = 0.01f,
+                    .output_LPF_RC = 0.05f,
+                    .i_limit = 500.0f,
+                },
             }
         },
         .setting = {
@@ -155,8 +164,8 @@ static void MotorControl()
     //前馈计算
     angle_feedforward_1 = 100 *cosf(angle_feedback_1 * ANG_TO_RAD);
     angle_feedforward_2 = 100 *cosf(angle_feedback_2 * ANG_TO_RAD);
-    MotorSetFeedforward(motor_l, angle_feedforward_1);
-    MotorSetFeedforward(motor_r, angle_feedforward_2);
+    // MotorSetFeedforward(motor_l, angle_feedforward_1);
+    // MotorSetFeedforward(motor_r, angle_feedforward_2);
 
     //限幅
     if (angle_l > 40.0f) angle_l = 40.0f;
