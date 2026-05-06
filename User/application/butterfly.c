@@ -28,6 +28,8 @@ static ELRS_Data *rc_elrs;
 static uint16_t *ptr_adc;
 static float angle_adc_1;//
 static float angle_adc_2;
+static float raw_angle_1;//
+static float raw_angle_2;
 
 static float angle_feedforward_1;
 static float angle_feedforward_2;
@@ -36,7 +38,7 @@ static float angle_feedforward_2;
 static float angle_l;
 static float angle_r;
 static float time;
-static float w = 4 * 2*PI;//角速度,单位:rad/s
+static float w = 3 * 2*PI;//角速度,单位:rad/s
 static float Al = 60;
 static float bl = 0;
 static float Ar = 60;
@@ -65,15 +67,15 @@ void Butterfly_Init()
                 .kd = 0.0f,
                 .deadband = 1.0f,
                 .maxout = VALUE_COMPARE,
-                .Improve = PID_T_Intergral | PID_I_limit | PID_Changing_I,
+                .Improve = PID_T_Intergral | PID_I_limit | PID_Changing_I |PID_Changing_P,
                 .Improve_param = {
                     .core_a = 100,
                     .core_b = 50,
                     .derivative_LPF_RC = 0.01f,
                     .output_LPF_RC = 0.05f,
                     .i_limit = 20.0f,
-                    .p_max = 20.0f,
-                    .p_min = 10.0f,
+                    .p_max = 15.0f,
+                    .p_min = 8.0f,
                     .err_max = 60.0f,
                 },
             },
@@ -141,6 +143,10 @@ static void RemoteControl()
     }
     else if (sw_is_down(rc_elrs->A)){
         butterfly_mode = BUTTERFLY_MODE_FLY;
+
+        // if(sw_is_mid(rc_elrs->B)){
+        //     w = rc_elrs->Left_Y / 100.0f * 4 * PI;
+        // }
         angle_l = cosf(time * w) * Al + bl;
         angle_r = cosf(time * w) * Ar + br;
     }
@@ -159,10 +165,10 @@ static void MotorControl()
 
     //前馈计算
     // 使用目标角度计算前馈，可以获得更快的响应
-    angle_feedforward_1 = 60 *cosf(angle_l * ANG_TO_RAD);
-    angle_feedforward_2 = 60 *cosf(angle_r * ANG_TO_RAD);
-    MotorSetFeedforward(motor_l, angle_feedforward_1);
-    MotorSetFeedforward(motor_r, angle_feedforward_2);
+    // angle_feedforward_1 = 60 *abs(cosf(angle_l * ANG_TO_RAD));
+    // angle_feedforward_2 = 60 *abs(cosf(angle_r * ANG_TO_RAD));
+    // MotorSetFeedforward(motor_l, angle_feedforward_1);
+    // MotorSetFeedforward(motor_r, angle_feedforward_2);
 
     //限幅
     if (angle_l > 90.0f) angle_l = 90.0f;
@@ -191,7 +197,8 @@ static void MotorControl()
 float Deal_Angle(float raw_angle, float offset)
 {
     float angle;
-    angle = raw_angle - offset;
+    // angle = raw_angle - offset;
+    angle = raw_angle;
     if (angle > 180){
         angle -= 360;
     }
@@ -230,8 +237,8 @@ void Adc_Cal()
     temp2 = (ADC_BANDWIDTH_2 - adc_2) / ADC_BANDWIDTH_2 * 360.f;
     angle_adc_1 = Deal_Angle(temp1, ANGLE_OFFSET_1);
     angle_adc_2 = Deal_Angle(temp2, ANGLE_OFFSET_2);
-    // angle_adc_1 = temp1;
-    // angle_adc_2 = temp2;
+    raw_angle_1 = temp1;
+    raw_angle_2 = temp2;
 }
 
 

@@ -28,7 +28,6 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
     for (uint8_t i = 0; i < idx; i++) {
         if (uart_instance[i]->huart == huart){
-
             if (uart_instance[i]->callback != NULL) {
                 uart_instance[i]->callback(); //调用回调函数
                 uart_rx_cnt++;
