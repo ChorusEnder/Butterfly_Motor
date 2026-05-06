@@ -144,9 +144,6 @@ static void RemoteControl()
     else if (sw_is_down(rc_elrs->A)){
         butterfly_mode = BUTTERFLY_MODE_FLY;
 
-        // if(sw_is_mid(rc_elrs->B)){
-        //     w = rc_elrs->Left_Y / 100.0f * 4 * PI;
-        // }
         angle_l = cosf(time * w) * Al + bl;
         angle_r = cosf(time * w) * Ar + br;
     }
